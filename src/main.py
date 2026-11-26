@@ -1,6 +1,12 @@
 from pathlib import Path
 import csv
 import json
+from providers.yahoo_provider import fetch_yahoo_prices
+
+YAHOO_SYMBOLS = {
+    "AAPL": "AAPL",
+    "SP500": "^GSPC",
+}
 
 from analytics import (
     align_series,
@@ -75,7 +81,7 @@ def display_market_summary(asset, prices, period_return, show_currency=True):
         currency = " " + asset["currency"]
 
     print(f"{asset['ticker']} - {asset['name']}")
-    print(f"Provider     : {asset['provider']}")
+    print("Provider     : Yahoo Finance via yfinance")
     print(f"Observations : {len(prices)}")
     print(f"First date   : {get_first_date(prices)}")
     print(f"Last date    : {get_last_date(prices)}")
@@ -83,21 +89,25 @@ def display_market_summary(asset, prices, period_return, show_currency=True):
     print(f"Last close   : {get_last_close(prices):.2f}{currency}")
     print(f"Period return : {period_return:.2f}%")
 
-
 def main():
     instruments = load_instruments()
-    prices = load_prices()
-    normalized_prices = [
-        normalize_price_row(row)
-        for row in prices
-    ]
 
     instrument = instruments["instrument"]
     benchmark = instruments["benchmark"]
 
-    instrument_prices = filter_prices(normalized_prices, instrument["ticker"])
-    benchmark_prices = filter_prices(normalized_prices, benchmark["ticker"])
+    instrument_prices = fetch_yahoo_prices(
+        symbol=YAHOO_SYMBOLS["AAPL"],
+        canonical_ticker="AAPL",
+        period="1mo",
+        interval="1d",
+    )
 
+    benchmark_prices = fetch_yahoo_prices(
+        symbol=YAHOO_SYMBOLS["SP500"],
+        canonical_ticker="SP500",
+        period="1mo",
+        interval="1d",
+    )
     aligned_instrument, aligned_benchmark = align_series(
         instrument_prices,
         benchmark_prices,
