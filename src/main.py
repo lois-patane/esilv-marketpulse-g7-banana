@@ -8,6 +8,7 @@ from analytics import (
     calculate_period_return,
     calculate_relative_performance,
 )
+from providers.yahoo_provider import fetch_yahoo_prices
 
 
 DATA_DIR = Path("data/sample")
@@ -17,6 +18,15 @@ DATA_DIR = Path("data/sample")
 # Parsing YAML is optional and is not required by the 18-hour lab sequence.
 LOOKBACK_LABEL = "1 month"
 INTERVAL_LABEL = "Daily"
+
+PROVIDER_LABEL = "Yahoo Finance via yfinance"
+YAHOO_PERIOD = "1mo"
+YAHOO_INTERVAL = "1d"
+
+YAHOO_SYMBOLS = {
+    "AAPL": "AAPL",
+    "SP500": "^GSPC",
+}
 
 
 def load_instruments():
@@ -75,7 +85,7 @@ def display_market_summary(asset, prices, period_return, show_currency=True):
         currency = " " + asset["currency"]
 
     print(f"{asset['ticker']} - {asset['name']}")
-    print(f"Provider     : {asset['provider']}")
+    print(f"Provider     : {PROVIDER_LABEL}")
     print(f"Observations : {len(prices)}")
     print(f"First date   : {get_first_date(prices)}")
     print(f"Last date    : {get_last_date(prices)}")
@@ -86,17 +96,23 @@ def display_market_summary(asset, prices, period_return, show_currency=True):
 
 def main():
     instruments = load_instruments()
-    prices = load_prices()
-    normalized_prices = [
-        normalize_price_row(row)
-        for row in prices
-    ]
 
     instrument = instruments["instrument"]
     benchmark = instruments["benchmark"]
 
-    instrument_prices = filter_prices(normalized_prices, instrument["ticker"])
-    benchmark_prices = filter_prices(normalized_prices, benchmark["ticker"])
+    instrument_prices = fetch_yahoo_prices(
+        symbol=YAHOO_SYMBOLS[instrument["ticker"]],
+        canonical_ticker=instrument["ticker"],
+        period=YAHOO_PERIOD,
+        interval=YAHOO_INTERVAL,
+    )
+
+    benchmark_prices = fetch_yahoo_prices(
+        symbol=YAHOO_SYMBOLS[benchmark["ticker"]],
+        canonical_ticker=benchmark["ticker"],
+        period=YAHOO_PERIOD,
+        interval=YAHOO_INTERVAL,
+    )
 
     aligned_instrument, aligned_benchmark = align_series(
         instrument_prices,
